@@ -177,6 +177,50 @@ func hyperperiod(tasks []Task) int {
 	return h
 }
 
+func gantt(tasks []Task, interval int) []ScheduleSegment {
+	sorted := sortTasksByRMS(tasks)
+	n := len(sorted)
+	rem := make([]int, n)
+	var segments []ScheduleSegment
+
+	for t := 0; t < interval; t++ {
+
+		for i := 0; i < n; i++ {
+			if t%sorted[i].T == 0 {
+				rem[i] += sorted[i].C
+			}
+		}
+
+		activeIdx := -1
+		for i := 0; i < n; i++ {
+			if rem[i] > 0 {
+				activeIdx = i
+				break
+			}
+		}
+
+		if activeIdx != -1 {
+			rem[activeIdx]--
+			if len(segments) > 0 && segments[len(segments)-1].TaskIdx == activeIdx && segments[len(segments)-1].End == t {
+				segments[len(segments)-1].End = t + 1
+			} else {
+				segments = append(segments, ScheduleSegment{
+					TaskName: sorted[activeIdx].Name,
+					TaskIdx:  activeIdx,
+					Start:    t,
+					End:      t + 1,
+				})
+			}
+		}
+	}
+
+	if err := renderGanttChart(sorted, segments, interval, filepath.Join("src", "charts", "chart.png")); err != nil {
+		log.Printf("Ошибка при сохранении графика: %v", err)
+	}
+
+	return segments
+}
+
 type intervalBars struct {
 	segments []ScheduleSegment
 	numTasks int
@@ -344,5 +388,6 @@ func main() {
 	}
 	fmt.Printf("EDF: U = %.3f (%s).", u, edfVerdict)
 
-	fmt.Printf("Гиперпериод: H = %d мс. Диаграмма выполнения RMS сохранена в ./charts/chart.png", hp)
+	gantt(sortedTasks, hp)
+	fmt.Printf("Гиперпериод: H = %d мс. Диаграмма выполнения RMS сохранена в .src/charts/chart.png", hp)
 }
