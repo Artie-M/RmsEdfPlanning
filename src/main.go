@@ -376,7 +376,7 @@ func main() {
 	sortedTasks := sortTasksByRMS(tasks)
 	n := len(sortedTasks)
 
-	fmt.Printf("Входной файл: %s (количество задач n = %d)", csvPath, n)
+	fmt.Printf("Входной файл: %s (количество задач n = %d)\n", csvPath, n)
 	printTasksTable(sortedTasks)
 	fmt.Println("\n--- ЗАКЛЮЧЕНИЕ ---")
 
@@ -386,7 +386,7 @@ func main() {
 	edfOK := edf_schedulable(sortedTasks)
 	hp := hyperperiod(sortedTasks)
 
-	fmt.Printf("Коэффициент загрузки: U = %.3f", u)
+	fmt.Printf("Коэффициент загрузки: U = %.3f\n", u)
 
 	llStatus := "не выполнен (U > границы, требуется проверка по R)"
 	if u <= llBound {
@@ -396,13 +396,13 @@ func main() {
 	if !rmsOK {
 		rmsVerdict = "набор НЕ планируем"
 	}
-	fmt.Printf("RMS (граница Liu & Layland для n = %d равна %.3f): тест %s — %s.", n, llBound, llStatus, rmsVerdict)
+	fmt.Printf("RMS (граница Liu & Layland для n = %d равна %.3f): тест %s — %s.\n", n, llBound, llStatus, rmsVerdict)
 
 	edfVerdict := "U <= 1 — набор планируем"
 	if !edfOK {
 		edfVerdict = "U > 1 — набор НЕ планируем"
 	}
-	fmt.Printf("EDF: U = %.3f (%s).", u, edfVerdict)
+	fmt.Printf("EDF: U = %.3f (%s).\n", u, edfVerdict)
 
 	gantt(sortedTasks, hp)
 	fmt.Printf("Гиперпериод: H = %d мс. Диаграмма выполнения RMS сохранена в ./src/charts/chart.png", hp)
