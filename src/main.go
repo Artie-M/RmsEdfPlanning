@@ -11,6 +11,7 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"text/tabwriter"
 
 	"gonum.org/v1/plot"
 	"gonum.org/v1/plot/plotter"
@@ -214,8 +215,9 @@ func gantt(tasks []Task, interval int) []ScheduleSegment {
 		}
 	}
 
-	if err := renderGanttChart(sorted, segments, interval, filepath.Join("src", "charts", "chart.png")); err != nil {
-		log.Printf("Ошибка при сохранении графика: %v", err)
+	chartPath := resolveChartPath()
+	if err := renderGanttChart(sorted, segments, interval, chartPath); err != nil {
+		log.Printf("Ошибка при сохранении графика: %v\n", err)
 	}
 
 	return segments
@@ -340,6 +342,30 @@ func resolveCSVPath() string {
 	return filepath.Join("data", "tasks.csv")
 }
 
+func resolveChartPath() string {
+	if _, err := os.Stat("src"); err == nil {
+		return filepath.Join("src", "charts", "chart.png")
+	}
+	return filepath.Join("charts", "chart.png")
+}
+
+func printTasksTable(sortedTasks []Task) {
+	w := tabwriter.NewWriter(os.Stdout, 0, 0, 2, ' ', 0)
+	fmt.Fprintln(w, "Задача\tC\tT\tD\tR\tУложилась")
+	fmt.Fprintln(w, "------\t-----\t------\t------\t------\t------")
+
+	for i, task := range sortedTasks {
+		r := response_time(task, sortedTasks[:i])
+		meetsDeadline := "Да"
+		if r > task.D {
+			meetsDeadline = "Нет"
+		}
+		fmt.Fprintf(w, "%s\t%d\t%d\t%d\t%d\t%s\n",
+			task.Name, task.C, task.T, task.D, r, meetsDeadline)
+	}
+	w.Flush()
+}
+
 func main() {
 	csvPath := resolveCSVPath()
 	tasks, err := loadTasks(csvPath)
@@ -351,18 +377,8 @@ func main() {
 	n := len(sortedTasks)
 
 	fmt.Printf("Входной файл: %s (количество задач n = %d)", csvPath, n)
-	fmt.Printf("%-20s | %-4s | %-4s | %-4s | %-4s | %-12s", "Задача", "C", "T", "D", "R", "Уложилась")
-	fmt.Println(strings.Repeat("-", 62))
-
-	for i, task := range sortedTasks {
-		r := response_time(task, sortedTasks[:i])
-		meetsDeadline := "Да"
-		if r > task.D {
-			meetsDeadline = "Нет"
-		}
-		fmt.Printf("%-20s | %-4d | %-4d | %-4d | %-4d | %-12s", task.Name, task.C, task.T, task.D, r, meetsDeadline)
-	}
-	fmt.Println()
+	printTasksTable(sortedTasks)
+	fmt.Println("\n--- ЗАКЛЮЧЕНИЕ ---")
 
 	u := utilization(sortedTasks)
 	llBound := liu_layland_bound(n)
@@ -389,5 +405,5 @@ func main() {
 	fmt.Printf("EDF: U = %.3f (%s).", u, edfVerdict)
 
 	gantt(sortedTasks, hp)
-	fmt.Printf("Гиперпериод: H = %d мс. Диаграмма выполнения RMS сохранена в .src/charts/chart.png", hp)
+	fmt.Printf("Гиперпериод: H = %d мс. Диаграмма выполнения RMS сохранена в ./src/charts/chart.png", hp)
 }
